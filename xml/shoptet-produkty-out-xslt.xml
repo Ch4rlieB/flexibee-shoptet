@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<winstrom version="1.0" source="FlexiBee">
+  <!-- Uživatelské transformace -->
+  <xslt>
+    <!-- ID (celé číslo) - -->
+    <id>code:FLEXIBEE-PRODUKTY</id>
+    <!-- Poslední změna (datum a čas) - -->
+    <lastUpdate>2017-12-29T22:32:07.284+01:00</lastUpdate>
+    <!-- Zkratka (řetězec) - max. délka: 20 -->
+    <kod>FLEXIBEE-PRODUKTY</kod>
+    <!-- Název (řetězec) - max. délka: 255 -->
+    <nazev>Načítání produktů z FlexiBee do Shoptetu</nazev>
+    <!-- Název EN (řetězec) - max. délka: 255 -->
+    <nazevA></nazevA>
+    <!-- Název DE (řetězec) - max. délka: 255 -->
+    <nazevB></nazevB>
+    <!-- Název FR (řetězec) - max. délka: 255 -->
+    <nazevC></nazevC>
+    <!-- Poznámka (řetězec) - -->
+    <poznam></poznam>
+    <!-- Popis (řetězec) - -->
+    <popis></popis>
+    <!-- Transformace (řetězec) - -->
+    <transformace>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+     xmlns:java="http://xml.apache.org/xalan/java" exclude-result-prefixes="java"&gt;
+  &lt;xsl:output method="xml" indent="yes" encoding="utf-8" /&gt;
+
+  &lt;xsl:template match="winstrom"&gt;
+    &lt;SHOP&gt;
+      &lt;xsl:apply-templates select="cenik"/&gt;
+    &lt;/SHOP&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="cenik"&gt;
+    &lt;SHOPITEM&gt;
+      &lt;CODE&gt;&lt;xsl:value-of select="kod"/&gt;&lt;/CODE&gt;
+      &lt;NAME&gt;&lt;xsl:value-of select="nazev"/&gt;&lt;/NAME&gt;
+      &lt;PRICE&gt;&lt;xsl:value-of select="java:flexibee.Tool.round(cenaZaklBezDph, 2)"/&gt;&lt;/PRICE&gt;
+      &lt;PRICE_VAT&gt;&lt;xsl:value-of select="java:flexibee.Tool.round(cenaZaklVcDph, 2)"/&gt;&lt;/PRICE_VAT&gt;
+      &lt;PURCHASE_PRICE&gt;&lt;xsl:value-of select="java:flexibee.Tool.round(nakupCena, 2)"/&gt;&lt;/PURCHASE_PRICE&gt;
+      &lt;STANDARD_PRICE&gt;&lt;xsl:value-of select="java:flexibee.Tool.round(cenaBezna, 2)"/&gt;&lt;/STANDARD_PRICE&gt;
+      &lt;CURRENCY&gt;CZK&lt;/CURRENCY&gt;
+
+      &lt;xsl:if test="skladove = 'true'"&gt;
+        &lt;STOCK&gt;
+          &lt;!--MAXIMAL_AMOUNT&gt;&lt;/MAXIMAL_AMOUNT--&gt;
+          &lt;MINIMAL_AMOUNT&gt;1&lt;/MINIMAL_AMOUNT&gt;
+          &lt;AMOUNT&gt;&lt;xsl:value-of select="sumDostupMj"/&gt;&lt;/AMOUNT&gt;
+        &lt;/STOCK&gt;
+      &lt;/xsl:if&gt;
+
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="kratkyPopis != ''"&gt;&lt;SHORT_DESCRIPTION&gt;&lt;xsl:value-of select="kratkyPopis"/&gt;&lt;/SHORT_DESCRIPTION&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="popis != ''"&gt;&lt;SHORT_DESCRIPTION&gt;&lt;xsl:value-of select="popis"/&gt;&lt;/SHORT_DESCRIPTION&gt;&lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;&lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+
+      &lt;xsl:if test="popis != ''"&gt;
+        &lt;DESCRIPTION&gt;&lt;xsl:value-of select="popis"/&gt;&lt;/DESCRIPTION&gt;
+      &lt;/xsl:if&gt;
+
+      &lt;xsl:if test="mj1 != ''"&gt;
+        &lt;UNIT&gt;&lt;xsl:value-of select="java:flexibee.Tool.substring(mj1, 5)"/&gt;&lt;/UNIT&gt;
+      &lt;/xsl:if&gt;
+
+      &lt;ITEM_TYPE&gt;
+        &lt;xsl:choose&gt;
+          &lt;xsl:when test="typZasobyK = 'typZasoby.sluzba'"&gt;service&lt;/xsl:when&gt;
+          &lt;xsl:otherwise&gt;product&lt;/xsl:otherwise&gt;
+        &lt;/xsl:choose&gt;
+      &lt;/ITEM_TYPE&gt;
+
+      &lt;xsl:if test="vyrobce != ''"&gt;
+        &lt;MANUFACTURER&gt;&lt;xsl:value-of select="java:flexibee.Tool.substring(vyrobce, 5)"/&gt;&lt;/MANUFACTURER&gt;
+      &lt;/xsl:if&gt;
+
+      &lt;AVAILABILITY&gt;
+        &lt;xsl:choose&gt;
+          &lt;xsl:when test="sumStavMj &gt; 0.0"&gt;Skladem&lt;/xsl:when&gt;
+          &lt;xsl:otherwise&gt;Není skladem&lt;/xsl:otherwise&gt;
+        &lt;/xsl:choose&gt;
+      &lt;/AVAILABILITY&gt;
+
+      &lt;!-- odkomentováním následujících řádků a jejich správným vyplněním je možné vyplnit i další vlastnosti --&gt;
+      &lt;!--VISIBILITY&gt;&lt;/VISIBILITY--&gt;
+      &lt;!--WARRANTY&gt;&lt;/WARRANTY--&gt;
+      &lt;!--WEIGHT&gt;&lt;/WEIGHT--&gt;
+      &lt;!--CATEGORY&gt;&lt;/CATEGORY--&gt;
+      &lt;!--FLAGS&gt;&lt;/FLAGS--&gt;
+      &lt;!--FREE_SHIPPING&gt;&lt;/FREE_SHIPPING--&gt;
+      &lt;!--IMAGES&gt;&lt;/IMAGES--&gt;
+      &lt;!--INFORMATION_PARAMETERS&gt;&lt;/INFORMATION_PARAMETERS--&gt;
+      &lt;!--PARAMETERS&gt;&lt;/PARAMETERS--&gt;
+      &lt;!--TEXT_PROPERTIES&gt;&lt;/TEXT_PROPERTIES--&gt;
+      &lt;!--ALTERNATIVE_PRODUCTS&gt;
+        &lt;CODE&gt;&lt;/CODE&gt;
+      &lt;/ALTERNATIVE_PRODUCTS--&gt;
+      &lt;!--RELATED_PRODUCTS&gt;
+        &lt;CODE&gt;&lt;/CODE&gt;
+      &lt;/RELATED_PRODUCTS--&gt;
+
+    &lt;/SHOPITEM&gt;
+  &lt;/xsl:template&gt;
+
+&lt;/xsl:stylesheet&gt;</transformace>
+  </xslt>
+</winstrom>

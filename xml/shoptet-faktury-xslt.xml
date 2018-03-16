@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<winstrom version="1.0" source="FlexiBee">
+  <!-- Uživatelské transformace -->
+  <xslt>
+    <!-- ID (celé číslo) - -->
+    <id>code:SHOPTET-FAKTURY</id>
+    <!-- Poslední změna (datum a čas) - -->
+    <lastUpdate>2017-11-18T21:56:14.403+01:00</lastUpdate>
+    <!-- Zkratka (řetězec) - max. délka: 20 -->
+    <kod>SHOPTET-FAKTURY</kod>
+    <!-- Název (řetězec) - max. délka: 255 -->
+    <nazev>Načítání faktur z e-shopu Shoptet</nazev>
+    <!-- Název EN (řetězec) - max. délka: 255 -->
+    <nazevA></nazevA>
+    <!-- Název DE (řetězec) - max. délka: 255 -->
+    <nazevB></nazevB>
+    <!-- Název FR (řetězec) - max. délka: 255 -->
+    <nazevC></nazevC>
+    <!-- Poznámka (řetězec) - -->
+    <poznam></poznam>
+    <!-- Popis (řetězec) - -->
+    <popis></popis>
+    <!-- Transformace (řetězec) - -->
+    <transformace>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"
+xmlns:rsp="http://www.stormware.cz/schema/version_2/response.xsd" 
+xmlns:rdc="http://www.stormware.cz/schema/version_2/documentresponse.xsd" 
+xmlns:typ="http://www.stormware.cz/schema/version_2/type.xsd" 
+xmlns:dat="http://www.stormware.cz/schema/version_2/data.xsd"
+xmlns:lst="http://www.stormware.cz/schema/version_2/list.xsd" 
+xmlns:lStk="http://www.stormware.cz/schema/version_2/list_stock.xsd" 
+xmlns:lAdb="http://www.stormware.cz/schema/version_2/list_addBook.xsd" 
+xmlns:acu="http://www.stormware.cz/schema/version_2/accountingunit.xsd" 
+xmlns:inv="http://www.stormware.cz/schema/version_2/invoice.xsd"
+xmlns:vch="http://www.stormware.cz/schema/version_2/voucher.xsd"
+xmlns:int="http://www.stormware.cz/schema/version_2/intDoc.xsd"
+xmlns:stk="http://www.stormware.cz/schema/version_2/stock.xsd"
+xmlns:ord="http://www.stormware.cz/schema/version_2/order.xsd"
+xmlns:ofr="http://www.stormware.cz/schema/version_2/offer.xsd"
+xmlns:enq="http://www.stormware.cz/schema/version_2/enquiry.xsd"
+xmlns:vyd="http://www.stormware.cz/schema/version_2/vydejka.xsd"
+xmlns:pri="http://www.stormware.cz/schema/version_2/prijemka.xsd"
+xmlns:bal="http://www.stormware.cz/schema/version_2/balance.xsd"
+xmlns:pre="http://www.stormware.cz/schema/version_2/prevodka.xsd"
+xmlns:vyr="http://www.stormware.cz/schema/version_2/vyroba.xsd"
+xmlns:pro="http://www.stormware.cz/schema/version_2/prodejka.xsd"
+xmlns:con="http://www.stormware.cz/schema/version_2/contract.xsd"
+xmlns:adb="http://www.stormware.cz/schema/version_2/addressbook.xsd"
+xmlns:prm="http://www.stormware.cz/schema/version_2/parameter.xsd"
+xmlns:lCon="http://www.stormware.cz/schema/version_2/list_contract.xsd"
+xmlns:ctg="http://www.stormware.cz/schema/version_2/category.xsd"
+xmlns:ipm="http://www.stormware.cz/schema/version_2/intParam.xsd"
+xmlns:str="http://www.stormware.cz/schema/version_2/storage.xsd"
+xmlns:java="http://xml.apache.org/xalan/java"
+exclude-result-prefixes="java"&gt;
+    
+  &lt;xsl:output method="xml" encoding="utf-8" /&gt;
+
+  &lt;!-- zkratka skladu na kterém je zboží určené pro eshop --&gt;
+  &lt;xsl:variable name="sklad" select="'SKLAD'" /&gt;
+
+  &lt;!-- zkratka typu dokladu použitého na naimportované faktuře --&gt;
+  &lt;xsl:variable name="typDoklFaktura" select="'FAKTURA'" /&gt;
+
+  &lt;!-- zkratka typu dokladu použitého na naimportovaném dobropisu --&gt;
+  &lt;xsl:variable name="typDoklDobropis" select="'DOBROPIS'" /&gt;
+
+  &lt;!-- pokud není stát vyplněn tak použijeme tento --&gt;
+  &lt;xsl:variable name="defaultStat" select="'code:CZ'" /&gt;
+
+  &lt;!-- pokud se mají vytvářet také ceníky tak true(), pokud ne tak false() --&gt;
+  &lt;xsl:variable name="vytvaretCeniky" select="true()" /&gt;
+
+  &lt;!-- zda se maji ceniky vubec resit --&gt;
+  &lt;xsl:variable name="resitCenik" select="true()" /&gt;
+
+
+  &lt;xsl:template match="/"&gt;
+    &lt;winstrom version="1.0" source="pohoda" atomic="false"&gt;
+      &lt;xsl:apply-templates/&gt;
+    &lt;/winstrom&gt;	
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="dat:dataPackItem"&gt;
+    &lt;xsl:apply-templates select="inv:invoice"/&gt;
+  &lt;/xsl:template&gt;
+	
+  &lt;xsl:template match="lst:listInvoice"&gt;
+    &lt;xsl:apply-templates select="lst:invoice"/&gt;
+  &lt;/xsl:template&gt;
+  
+  &lt;xsl:template match="lst:invoice|inv:invoice"&gt;
+    &lt;xsl:if test="$vytvaretCeniky = true() and $resitCenik = true()"&gt;
+      &lt;xsl:call-template name="cenik"/&gt;
+    &lt;/xsl:if&gt;
+    &lt;xsl:call-template name="faktura-vydana"/&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template name="cenik"&gt;
+    &lt;xsl:for-each select="inv:invoiceDetail/inv:invoiceItem"&gt;
+      &lt;xsl:if test="inv:stockItem/typ:stockItem/typ:ids and inv:stockItem/typ:stockItem/typ:ids != ''"&gt;
+        &lt;cenik update="ignore"&gt;
+          &lt;id&gt;code:&lt;xsl:value-of select="inv:code"/&gt;&lt;/id&gt;
+          &lt;kod&gt;&lt;xsl:value-of select="inv:code"/&gt;&lt;/kod&gt;
+          &lt;nazev&gt;&lt;xsl:value-of select="inv:text"/&gt;&lt;/nazev&gt;
+          &lt;!-- skladové karty --&gt;
+          &lt;skladove&gt;true&lt;/skladove&gt;
+        &lt;/cenik&gt;
+        &lt;skladova-karta update="ignore"&gt;
+          &lt;cenik&gt;code:&lt;xsl:value-of select="inv:code"/&gt;&lt;/cenik&gt;
+          &lt;sklad&gt;code:&lt;xsl:value-of select="$sklad"/&gt;&lt;/sklad&gt;
+          &lt;ucetObdobi&gt;code:&lt;xsl:value-of select="java:flexibee.Tool.substring(../../inv:invoiceHeader/inv:date, 0, 4)"/&gt;&lt;/ucetObdobi&gt;
+        &lt;/skladova-karta&gt;
+      &lt;/xsl:if&gt;
+    &lt;/xsl:for-each&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template name="faktura-vydana"&gt;
+    &lt;faktura-vydana&gt;
+      &lt;xsl:if test="java:flexibee.Tool.trim(inv:invoiceHeader/inv:number/typ:numberRequested) != ''"&gt;
+        &lt;id&gt;code:&lt;xsl:value-of select="inv:invoiceHeader/inv:number/typ:numberRequested"/&gt;&lt;/id&gt;
+        &lt;kod&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:number/typ:numberRequested"/&gt;&lt;/kod&gt;
+      &lt;/xsl:if&gt;
+      &lt;varSym&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:symVar"/&gt;&lt;/varSym&gt;
+      &lt;cisObj&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:numberOrder"/&gt;&lt;/cisObj&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:invoiceType = 'issuedCorrectiveTax'"&gt;
+          &lt;typDokl&gt;code:&lt;xsl:value-of select="$typDoklDobropis"/&gt;&lt;/typDokl&gt;
+        &lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;typDokl&gt;code:&lt;xsl:value-of select="$typDoklFaktura"/&gt;&lt;/typDokl&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+
+      &lt;datVyst&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:date"/&gt;&lt;/datVyst&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="not(inv:invoiceHeader/inv:dateTax)"&gt;
+          &lt;duzpPuv&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:date"/&gt;&lt;/duzpPuv&gt;
+          &lt;duzpUcto&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:date"/&gt;&lt;/duzpUcto&gt;
+        &lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;duzpPuv&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:dateTax"/&gt;&lt;/duzpPuv&gt;
+          &lt;duzpUcto&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:dateTax"/&gt;&lt;/duzpUcto&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+      &lt;datSplat&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:dateDue"/&gt;&lt;/datSplat&gt;
+
+      &lt;xsl:if test="inv:invoiceSummary/inv:foreignCurrency/typ:currency/typ:ids"&gt;
+        &lt;mena&gt;code:&lt;xsl:value-of select="inv:invoiceSummary/inv:foreignCurrency/typ:currency/typ:ids"/&gt;&lt;/mena&gt;
+      &lt;/xsl:if&gt;
+
+      &lt;formaUhradyCis if-not-found="null"&gt;code:&lt;xsl:value-of select="java:flexibee.Tool.toUpper(inv:invoiceHeader/inv:paymentType/typ:paymentType)"/&gt;&lt;/formaUhradyCis&gt;
+      &lt;formaDopravy if-not-found="null"&gt;code:&lt;xsl:value-of select="java:flexibee.Tool.toUpper(inv:invoiceHeader/inv:carrier/typ:ids)"/&gt;&lt;/formaDopravy&gt;
+
+      &lt;!-- odberatel --&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:company != '' and inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:name != ''"&gt;
+          &lt;nazFirmy&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:company"/&gt; - &lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:name"/&gt;&lt;/nazFirmy&gt;
+        &lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:company != ''"&gt;
+          &lt;nazFirmy&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:company"/&gt;&lt;/nazFirmy&gt;
+        &lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;nazFirmy&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:name"/&gt;&lt;/nazFirmy&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+      &lt;ulice&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:street"/&gt;&lt;/ulice&gt;
+      &lt;mesto&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:city"/&gt;&lt;/mesto&gt;
+      &lt;psc&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:zip"/&gt;&lt;/psc&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="not(inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids)"&gt;&lt;stat&gt;&lt;xsl:value-of select="$defaultStat"/&gt;&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = ''"&gt;&lt;stat&gt;&lt;xsl:value-of select="$defaultStat"/&gt;&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'CZE'"&gt;&lt;stat&gt;code:CZ&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'SVK'"&gt;&lt;stat&gt;code:SK&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'DEU'"&gt;&lt;stat&gt;code:DE&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'FRA'"&gt;&lt;stat&gt;code:FR&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'POL'"&gt;&lt;stat&gt;code:PL&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'ITA'"&gt;&lt;stat&gt;code:IT&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'AUT'"&gt;&lt;stat&gt;code:AT&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'GBR'"&gt;&lt;stat&gt;code:GB&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids = 'ZAF'"&gt;&lt;stat&gt;code:ZA&lt;/stat&gt;&lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;stat&gt;code:&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:country/typ:ids"/&gt;&lt;/stat&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+      &lt;ic&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:ico"/&gt;&lt;/ic&gt;
+      &lt;dic&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:partnerIdentity/typ:address/typ:dic"/&gt;&lt;/dic&gt;
+
+      &lt;!-- polozky faktury --&gt;
+      &lt;bezPolozek&gt;false&lt;/bezPolozek&gt;
+      &lt;polozkyDokladu removeAll="true"&gt;
+        &lt;xsl:apply-templates select="inv:invoiceDetail/inv:invoiceItem"&gt;
+          &lt;xsl:with-param name="invoiceType"&gt;&lt;xsl:value-of select="inv:invoiceHeader/inv:invoiceType"/&gt;&lt;/xsl:with-param&gt; 
+        &lt;/xsl:apply-templates&gt;
+
+      &lt;/polozkyDokladu&gt;
+
+    &lt;/faktura-vydana&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="inv:invoiceDetail/inv:invoiceItem"&gt;
+    &lt;xsl:param name="invoiceType" /&gt;
+    &lt;faktura-vydana-polozka&gt;
+      &lt;nazev&gt;&lt;xsl:value-of select="inv:text"/&gt;&lt;/nazev&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="inv:quantity = 0"&gt;
+          &lt;typPolozkyK&gt;typPolozky.ucetni&lt;/typPolozkyK&gt;
+        &lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;xsl:if test="inv:stockItem/typ:stockItem/typ:ids and inv:stockItem/typ:stockItem/typ:ids != '' and $resitCenik = true()"&gt;
+            &lt;cenik&gt;code:&lt;xsl:value-of select="inv:stockItem/typ:stockItem/typ:ids"/&gt;&lt;/cenik&gt;
+            &lt;sklad&gt;code:&lt;xsl:value-of select="$sklad"/&gt;&lt;/sklad&gt;
+          &lt;/xsl:if&gt;
+          &lt;kod&gt;&lt;xsl:value-of select="inv:code"/&gt;&lt;/kod&gt;
+          &lt;xsl:choose&gt;
+            &lt;xsl:when test="$invoiceType = 'issuedCorrectiveTax' and inv:quantity &gt; 0"&gt;
+              &lt;!-- FlexiBee neumožňuje na dobropisu kladné množství tak otočíme jak množství tak částku - jedná se nejspíš hlavně o dopravu na dobropisu --&gt;
+              &lt;mnozMj&gt;-&lt;xsl:value-of select="inv:quantity"/&gt;&lt;/mnozMj&gt;
+              &lt;xsl:choose&gt;
+                &lt;xsl:when test="inv:foreignCurrency/typ:unitPrice and inv:foreignCurrency/typ:unitPrice != 0.0"&gt;
+                  &lt;cenaMj&gt;-&lt;xsl:value-of select="inv:foreignCurrency/typ:unitPrice"/&gt;&lt;/cenaMj&gt;
+                &lt;/xsl:when&gt;
+                &lt;xsl:otherwise&gt;
+                  &lt;cenaMj&gt;-&lt;xsl:value-of select="inv:homeCurrency/typ:unitPrice"/&gt;&lt;/cenaMj&gt;
+                &lt;/xsl:otherwise&gt;
+              &lt;/xsl:choose&gt;
+            &lt;/xsl:when&gt;
+            &lt;xsl:otherwise&gt;
+              &lt;!-- Ve všech ostatních případech je vše tak jak je ve vstupním souboru --&gt;
+              &lt;mnozMj&gt;&lt;xsl:value-of select="inv:quantity"/&gt;&lt;/mnozMj&gt;
+              &lt;xsl:choose&gt;
+                &lt;xsl:when test="inv:foreignCurrency/typ:unitPrice and inv:foreignCurrency/typ:unitPrice != 0.0"&gt;
+                  &lt;cenaMj&gt;&lt;xsl:value-of select="inv:foreignCurrency/typ:unitPrice"/&gt;&lt;/cenaMj&gt;
+                &lt;/xsl:when&gt;
+                &lt;xsl:otherwise&gt;
+                  &lt;cenaMj&gt;&lt;xsl:value-of select="inv:homeCurrency/typ:unitPrice"/&gt;&lt;/cenaMj&gt;
+                &lt;/xsl:otherwise&gt;
+              &lt;/xsl:choose&gt;
+            &lt;/xsl:otherwise&gt;
+          &lt;/xsl:choose&gt;
+          &lt;xsl:if test="inv:unit != ''"&gt;
+            &lt;mj if-not-found="create"&gt;code:&lt;xsl:value-of select="java:flexibee.Tool.toUpper(inv:unit)"/&gt;&lt;/mj&gt;
+          &lt;/xsl:if&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="inv:rateVAT = 'high'"&gt;&lt;typSzbDphK&gt;typSzbDph.dphZakl&lt;/typSzbDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:rateVAT = 'third'"&gt;&lt;typSzbDphK&gt;typSzbDph.dphSniz2&lt;/typSzbDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:rateVAT = 'low'"&gt;&lt;typSzbDphK&gt;typSzbDph.dphSniz&lt;/typSzbDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:rateVAT = 'none'"&gt;&lt;typSzbDphK&gt;typSzbDph.dphOsv&lt;/typSzbDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:rateVAT = '' or not(inv:rateVAT)"&gt;&lt;typSzbDphK&gt;typSzbDph.dphOsv&lt;/typSzbDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;typSzbDphK&gt;NEDEFINOVANO-&lt;xsl:value-of select="inv:rateVAT"/&gt;&lt;/typSzbDphK&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+      &lt;xsl:choose&gt;
+        &lt;xsl:when test="inv:payVAT = 'true'"&gt;&lt;typCenyDphK&gt;typCeny.sDph&lt;/typCenyDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:when test="inv:payVAT = 'false'"&gt;&lt;typCenyDphK&gt;typCeny.bezDph&lt;/typCenyDphK&gt;&lt;/xsl:when&gt;
+        &lt;xsl:otherwise&gt;
+          &lt;typCenyDphK&gt;NEDEFINOVANO-&lt;xsl:value-of select="inv:payVAT"/&gt;&lt;/typCenyDphK&gt;
+        &lt;/xsl:otherwise&gt;
+      &lt;/xsl:choose&gt;
+      &lt;xsl:if test="inv:discountPercentage"&gt;
+        &lt;slevaPol&gt;&lt;xsl:value-of select="inv:discountPercentage"/&gt;&lt;/slevaPol&gt;
+      &lt;/xsl:if&gt;
+    &lt;/faktura-vydana-polozka&gt;
+  &lt;/xsl:template&gt;
+
+  
+&lt;/xsl:stylesheet&gt;</transformace>
+  </xslt>
+</winstrom>

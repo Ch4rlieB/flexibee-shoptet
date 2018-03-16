@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<winstrom version="1.0" source="FlexiBee">
+  <!-- Uživatelské transformace -->
+  <xslt>
+    <!-- ID (celé číslo) - -->
+    <id>code:SHOPTET-STAV-SKLADU</id>
+    <!-- Poslední změna (datum a čas) - -->
+    <lastUpdate>2017-09-28T18:23:01.921+02:00</lastUpdate>
+    <!-- Zkratka (řetězec) - max. délka: 20 -->
+    <kod>SHOPTET-STAV-SKLADU</kod>
+    <!-- Název (řetězec) - max. délka: 255 -->
+    <nazev>Odesílání stavu skladu do e-shopu Shoptet</nazev>
+    <!-- Název EN (řetězec) - max. délka: 255 -->
+    <nazevA></nazevA>
+    <!-- Název DE (řetězec) - max. délka: 255 -->
+    <nazevB></nazevB>
+    <!-- Název FR (řetězec) - max. délka: 255 -->
+    <nazevC></nazevC>
+    <!-- Poznámka (řetězec) - -->
+    <poznam></poznam>
+    <!-- Popis (řetězec) - -->
+    <popis></popis>
+    <!-- Transformace (řetězec) - -->
+    <transformace>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+    xmlns:java="http://xml.apache.org/xalan/java" exclude-result-prefixes="java"&gt;
+  &lt;xsl:output method="xml" indent="yes" encoding="utf-8" /&gt;
+
+  &lt;xsl:template match="winstrom"&gt;
+    &lt;SHOP&gt;
+      &lt;xsl:apply-templates select="skladova-karta"/&gt;
+    &lt;/SHOP&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="skladova-karta"&gt;
+    &lt;!-- zpracování konkrétní skladové karty --&gt;
+    &lt;SHOPITEM&gt;
+      &lt;CODE&gt;&lt;xsl:value-of select="java:flexibee.Tool.substring(cenik, 5)"/&gt;&lt;/CODE&gt;
+      &lt;STOCK&gt;
+        &lt;AMOUNT&gt;&lt;xsl:value-of select="stavMjSPozadavky - rezervMJ"/&gt;&lt;/AMOUNT&gt;
+      &lt;/STOCK&gt;
+      &lt;PURCHASE_PRICE&gt;&lt;xsl:value-of select="java:flexibee.Tool.round(prumCenaTuz, '2')"/&gt;&lt;/PURCHASE_PRICE&gt;
+    &lt;/SHOPITEM&gt;
+  &lt;/xsl:template&gt;
+
+&lt;/xsl:stylesheet&gt;
+</transformace>
+  </xslt>
+</winstrom>

@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<winstrom version="1.0" source="FlexiBee">
+  <!-- Uživatelské transformace -->
+  <xslt>
+    <!-- ID (celé číslo) - -->
+    <id>code:SHOPTET-PRODUKTY</id>
+    <!-- Poslední změna (datum a čas) - -->
+    <lastUpdate>2017-09-28T18:22:35.106+02:00</lastUpdate>
+    <!-- Zkratka (řetězec) - max. délka: 20 -->
+    <kod>SHOPTET-PRODUKTY</kod>
+    <!-- Název (řetězec) - max. délka: 255 -->
+    <nazev>Načítání produktů z e-shopu Shoptet</nazev>
+    <!-- Název EN (řetězec) - max. délka: 255 -->
+    <nazevA></nazevA>
+    <!-- Název DE (řetězec) - max. délka: 255 -->
+    <nazevB></nazevB>
+    <!-- Název FR (řetězec) - max. délka: 255 -->
+    <nazevC></nazevC>
+    <!-- Poznámka (řetězec) - -->
+    <poznam></poznam>
+    <!-- Popis (řetězec) - -->
+    <popis></popis>
+    <!-- Transformace (řetězec) - -->
+    <transformace>&lt;?xml version="1.0" encoding="utf-8" ?&gt;
+&lt;xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0" xmlns:java="http://xml.apache.org/xalan/java" exclude-result-prefixes="java"&gt;
+
+  &lt;xsl:output method="xml" encoding="utf-8" /&gt;
+
+  &lt;!-- zkratka skladu na kterém je zboží určené pro eshop --&gt;
+  &lt;xsl:variable name="sklad" select="'SKLAD'" /&gt;
+
+  &lt;xsl:template match="SHOP"&gt;
+    &lt;winstrom version="1.0"&gt;
+      &lt;xsl:apply-templates select="SHOPITEM"/&gt;
+      &lt;xsl:apply-templates select="SHOPITEM/SET_ITEMS"/&gt;
+    &lt;/winstrom&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template name="STEJNE"&gt;
+    &lt;!-- vytvoření produktu - není rozdíl mezi produktem s variantami a bez variant --&gt;
+    &lt;xsl:param name="itemType"/&gt;
+    &lt;!-- identifikátory --&gt;
+    &lt;id&gt;code:&lt;xsl:value-of select="CODE"/&gt;&lt;/id&gt;
+    &lt;kod&gt;&lt;xsl:value-of select="CODE"/&gt;&lt;/kod&gt;
+    &lt;xsl:if test="EAN and EAN != ''"&gt;
+      &lt;!--id&gt;ean:&lt;xsl:value-of select="EAN"/&gt;&lt;/id--&gt;
+      &lt;eanKod&gt;&lt;xsl:value-of select="EAN"/&gt;&lt;/eanKod&gt;
+    &lt;/xsl:if&gt;
+
+    &lt;!-- důležitá pole --&gt;
+    &lt;xsl:choose&gt;
+      &lt;xsl:when test="PRICE_VAT"&gt;
+        &lt;cenaZakl&gt;&lt;xsl:value-of select="PRICE_VAT"/&gt;&lt;/cenaZakl&gt;
+        &lt;typCenyDphK&gt;typCeny.sDph&lt;/typCenyDphK&gt;
+      &lt;/xsl:when&gt;
+      &lt;xsl:when test="PRICE"&gt;
+        &lt;cenaZakl&gt;&lt;xsl:value-of select="PRICE"/&gt;&lt;/cenaZakl&gt;
+        &lt;typCenyDphK&gt;typCeny.bezDph&lt;/typCenyDphK&gt;
+      &lt;/xsl:when&gt;
+    &lt;/xsl:choose&gt;
+    &lt;xsl:choose&gt;
+      &lt;xsl:when test="VAT = 0"&gt;
+        &lt;typSzbDphK&gt;typSzbDph.dphOsv&lt;/typSzbDphK&gt;
+      &lt;/xsl:when&gt;
+      &lt;xsl:when test="VAT = 10"&gt;
+        &lt;typSzbDphK&gt;typSzbDph.dphSniz2&lt;/typSzbDphK&gt;
+      &lt;/xsl:when&gt;
+      &lt;xsl:when test="VAT = 15"&gt;
+        &lt;typSzbDphK&gt;typSzbDph.dphSniz&lt;/typSzbDphK&gt;
+      &lt;/xsl:when&gt;
+      &lt;xsl:otherwise&gt;
+        &lt;typSzbDphK&gt;typSzbDph.dphZakl&lt;/typSzbDphK&gt;
+      &lt;/xsl:otherwise&gt;
+    &lt;/xsl:choose&gt;
+
+    &lt;xsl:if test="$itemType = 'product' or $itemType = 'set'"&gt;
+      &lt;!-- skladové karty --&gt;
+      &lt;skladove&gt;true&lt;/skladove&gt;
+      &lt;sklad-karty&gt;
+        &lt;skladova-karta&gt;
+          &lt;sklad&gt;code:&lt;xsl:value-of select="$sklad"/&gt;&lt;/sklad&gt;
+          &lt;ucetObdobi&gt;code:&lt;xsl:value-of select="java:flexibee.Tool.substring(java:flexibee.Tool.currentDate(), 0, 4)"/&gt;&lt;/ucetObdobi&gt;
+        &lt;/skladova-karta&gt;
+      &lt;/sklad-karty&gt;
+    &lt;/xsl:if&gt;
+
+    &lt;poznam&gt;&lt;xsl:value-of select="$itemType"/&gt;&lt;/poznam&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template name="ITEM"&gt;
+    &lt;!-- jednoduchý produkt --&gt;
+    &lt;cenik&gt;
+      &lt;id&gt;ext:shoptet-product:&lt;xsl:value-of select="@id"/&gt;&lt;/id&gt;
+      &lt;xsl:call-template name="STEJNE"&gt;
+        &lt;xsl:with-param name="itemType" select="ITEM_TYPE" /&gt;
+      &lt;/xsl:call-template&gt;
+      &lt;nazev&gt;&lt;xsl:value-of select="NAME"/&gt;&lt;/nazev&gt;
+    &lt;/cenik&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="VARIANTS/VARIANT"&gt;
+    &lt;!-- produkt s variantami --&gt;
+    &lt;cenik&gt;
+      &lt;id&gt;ext:shoptet-product:&lt;xsl:value-of select="../../@id"/&gt;-&lt;xsl:value-of select="@id"/&gt;&lt;/id&gt;
+      &lt;id&gt;ext:shoptet-product-variant:&lt;xsl:value-of select="@id"/&gt;&lt;/id&gt;
+      &lt;xsl:call-template name="STEJNE"&gt;
+        &lt;xsl:with-param name="itemType" select="../../ITEM_TYPE" /&gt;
+      &lt;/xsl:call-template&gt;
+      &lt;xsl:if test="../../ITEM_TYPE = 'set'"&gt;
+        &lt;setWithVariants/&gt;
+      &lt;/xsl:if&gt;
+      &lt;nazev&gt;&lt;xsl:value-of select="../../NAME"/&gt; - &lt;xsl:value-of select="CODE"/&gt;&lt;/nazev&gt;
+    &lt;/cenik&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="SHOPITEM"&gt;
+    &lt;!-- rozhodování zda se jedná o produkt s variantami nebo bez variant --&gt;
+    &lt;xsl:if test="VARIANTS"&gt;
+      &lt;xsl:apply-templates select="VARIANTS/VARIANT"/&gt;
+    &lt;/xsl:if&gt;
+    &lt;xsl:if test="not(VARIANTS)"&gt;
+      &lt;xsl:call-template name="ITEM"/&gt;
+    &lt;/xsl:if&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="SHOPITEM/SET_ITEMS"&gt;
+    &lt;!-- zpracování rozpadů sad --&gt;
+    &lt;cenik&gt;
+      &lt;id&gt;code:&lt;xsl:value-of select="../CODE"/&gt;&lt;/id&gt;
+      &lt;xsl:if test="../ITEM_TYPE = 'set'"&gt;
+        &lt;sady-a-komplety removeAll="true"&gt;
+          &lt;xsl:apply-templates select="SET_ITEM"/&gt;
+        &lt;/sady-a-komplety&gt;
+      &lt;/xsl:if&gt;
+    &lt;/cenik&gt;
+  &lt;/xsl:template&gt;
+
+  &lt;xsl:template match="SET_ITEM"&gt;
+    &lt;!-- jednotlivý rozpad sady --&gt;
+    &lt;sady-a-komplety&gt;
+      &lt;id&gt;ext:SHOPTET-SET:&lt;xsl:value-of select="../../CODE"/&gt;-&lt;xsl:value-of select="CODE"/&gt;-&lt;xsl:value-of select="AMOUNT"/&gt;&lt;/id&gt;
+      &lt;!--cenikSada&gt;code:&lt;xsl:value-of select="../../CODE"/&gt;&lt;/cenikSada--&gt;
+      &lt;cenik&gt;code:&lt;xsl:value-of select="CODE"/&gt;&lt;/cenik&gt;
+      &lt;mnozMj&gt;&lt;xsl:value-of select="AMOUNT"/&gt;&lt;/mnozMj&gt;
+    &lt;/sady-a-komplety&gt;
+  &lt;/xsl:template&gt;
+
+&lt;/xsl:stylesheet&gt;</transformace>
+  </xslt>
+</winstrom>
